@@ -2,7 +2,7 @@
 <html lang="mk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Кабаст Отпад 2026 — Општина Аеродром</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
@@ -11,19 +11,25 @@
   :root {
     --bg: #0f0f0f; --surface: #1a1a1a; --border: #2e2e2e;
     --accent: #e8ff3b; --accent2: #ff6b2b; --text: #e8e8e8; --muted: #888; --done: #444;
+    --admin-color: #ff4466;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body { height:100%; }
-  body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif; display:flex; flex-direction:column; }
+  body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif; display:flex; flex-direction:column; overflow:hidden; }
 
   header { border-bottom:1px solid var(--border); padding:1.5rem 2rem 1.25rem; flex-shrink:0; position:relative; overflow:hidden; }
   header::before { content:''; position:absolute; top:-60px; right:-60px; width:240px; height:240px; background:radial-gradient(circle,rgba(232,255,59,.1) 0%,transparent 70%); pointer-events:none; }
   .header-label { font-family:'IBM Plex Mono',monospace; font-size:.62rem; letter-spacing:.2em; color:var(--accent); text-transform:uppercase; margin-bottom:.4rem; }
-  h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.2rem,5vw,3.8rem); line-height:.9; }
+  h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.2rem,5vw,3.8rem); line-height:.9; cursor:default; }
   h1 span { color:var(--accent); }
   .header-meta { margin-top:.9rem; display:flex; gap:1.75rem; flex-wrap:wrap; }
   .meta-item { font-family:'IBM Plex Mono',monospace; font-size:.68rem; color:var(--muted); }
   .meta-item strong { color:var(--text); display:block; font-size:.78rem; }
+
+  /* ── NEXT UPCOMING BANNER ── */
+  #next-banner { display:none; background:var(--accent); color:#000; font-family:'IBM Plex Mono',monospace; font-size:.72rem; padding:.5rem 2rem; text-align:center; flex-shrink:0; cursor:pointer; transition:opacity .2s; letter-spacing:.03em; }
+  #next-banner:hover { opacity:.85; }
+  #next-banner strong { font-weight:600; }
 
   .tabs { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; }
   .tab-btn { font-family:'IBM Plex Mono',monospace; font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; padding:.8rem 1.5rem; background:none; border:none; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .15s; }
@@ -40,12 +46,23 @@
   .filter-btn { font-family:'IBM Plex Mono',monospace; font-size:.65rem; letter-spacing:.05em; padding:.45rem .8rem; background:var(--surface); border:1px solid var(--border); color:var(--muted); cursor:pointer; transition:all .15s; text-transform:uppercase; }
   .filter-btn:hover, .filter-btn.active { background:var(--accent); border-color:var(--accent); color:#000; }
 
-  .panel { display:none; flex:1; overflow:hidden; min-height:0; }
+  .panel { display:none; flex:1; overflow:hidden; min-height:0; position:relative; }
   .panel.active { display:flex; flex-direction:column; }
 
-  #map { flex:1; min-height:400px; }
+  #map { flex:1; min-height:0; }
 
-  /* Leaflet popup dark theme */
+  /* ── LEGEND ── */
+  #legend {
+    position:absolute; bottom:1.25rem; right:1rem; z-index:1000;
+    background:rgba(15,15,15,.88); border:1px solid var(--border);
+    padding:.45rem .65rem; font-family:'IBM Plex Mono',monospace; font-size:.55rem;
+    display:flex; flex-direction:column; gap:.25rem; pointer-events:none;
+    backdrop-filter:blur(4px);
+  }
+  #legend span { display:flex; align-items:center; gap:.4rem; white-space:nowrap; }
+  .leg-dot { width:8px; height:8px; border-radius:50%; display:inline-block; flex-shrink:0; }
+
+  /* ── POPUP ── */
   .leaflet-popup-content-wrapper { background:#1e1e1e !important; border:1px solid #333 !important; border-radius:0 !important; box-shadow:0 4px 20px rgba(0,0,0,.7) !important; color:var(--text) !important; }
   .leaflet-popup-tip { background:#1e1e1e !important; }
   .leaflet-popup-content { margin:10px 12px !important; }
@@ -55,6 +72,9 @@
   .p-date.upcoming { color:var(--accent); }
   .p-date.active { color:var(--accent2); }
   .p-date.done { color:#555; }
+  .popup-actions { display:flex; gap:.35rem; margin-top:.5rem; flex-wrap:wrap; }
+  .popup-btn { font-family:'IBM Plex Mono',monospace; font-size:.55rem; letter-spacing:.04em; text-transform:uppercase; padding:.25rem .45rem; background:var(--surface); border:1px solid var(--border); color:var(--muted); cursor:pointer; text-decoration:none; transition:all .12s; display:inline-flex; align-items:center; gap:.25rem; }
+  .popup-btn:hover { background:var(--accent); border-color:var(--accent); color:#000; text-decoration:none; }
 
   #schedule-panel { overflow-y:auto; }
   .timeline { padding:1.25rem 2rem; }
@@ -74,6 +94,28 @@
   .status-done { color:var(--done); border-color:var(--done); }
   @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.65} }
 
+  /* ── ADMIN ── */
+  #admin-bar { display:none; background:var(--admin-color); color:#fff; font-family:'IBM Plex Mono',monospace; font-size:.65rem; padding:.45rem 2rem; flex-shrink:0; overflow-x:auto; white-space:nowrap; align-items:center; gap:.6rem; }
+  #admin-bar.show { display:flex; }
+  .admin-btn { font-family:'IBM Plex Mono',monospace; font-size:.6rem; text-transform:uppercase; letter-spacing:.05em; padding:.3rem .55rem; border:1px solid rgba(255,255,255,.4); background:transparent; color:#fff; cursor:pointer; transition:all .12s; }
+  .admin-btn:hover { background:#fff; color:var(--admin-color); border-color:#fff; }
+  .admin-btn.danger { border-color:rgba(0,0,0,.3); color:rgba(0,0,0,.7); }
+  .admin-btn.danger:hover { background:#000; color:#fff; border-color:#000; }
+  .admin-save { background:#fff; color:var(--admin-color); font-weight:600; border-color:#fff; }
+  body.admin-mode .entry { outline:1px dashed rgba(255,68,102,.25); outline-offset:-1px; cursor:pointer; }
+  body.admin-mode .entry:hover { outline-color:var(--admin-color); }
+  body.admin-mode .entry.admin-editing { outline:2px solid var(--admin-color); background:var(--surface); }
+  .admin-edit-field { background:transparent; border:1px solid var(--border); color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:.72rem; padding:.2rem .35rem; width:100%; }
+  .admin-edit-field:focus { border-color:var(--admin-color); outline:none; }
+  .admin-add-btn { display:none; font-family:'IBM Plex Mono',monospace; font-size:.65rem; text-transform:uppercase; letter-spacing:.05em; padding:.5rem 1rem; background:transparent; border:1px dashed var(--border); color:var(--muted); cursor:pointer; width:100%; text-align:center; margin:.75rem 0; transition:all .12s; }
+  .admin-add-btn:hover { border-color:var(--admin-color); color:var(--admin-color); }
+  body.admin-mode .admin-add-btn { display:block; }
+  .admin-delete-entry { font-family:'IBM Plex Mono',monospace; font-size:.5rem; text-transform:uppercase; letter-spacing:.05em; padding:.15rem .3rem; background:transparent; border:1px solid rgba(255,68,102,.3); color:var(--admin-color); cursor:pointer; transition:all .12s; margin-left:.4rem; vertical-align:middle; }
+  .admin-delete-entry:hover { background:var(--admin-color); color:#fff; }
+  .admin-indicator { display:inline-block; width:6px; height:6px; background:var(--admin-color); border-radius:50%; animation:pulse 1s ease-in-out infinite; margin-right:.4rem; vertical-align:middle; }
+  .admin-toast { position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); background:var(--accent); color:#000; font-family:'IBM Plex Mono',monospace; font-size:.7rem; padding:.5rem 1rem; z-index:9999; opacity:0; transition:opacity .25s; pointer-events:none; }
+  .admin-toast.show { opacity:1; }
+
   footer { border-top:1px solid var(--border); padding:.85rem 2rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; flex-shrink:0; }
   .footer-note { font-family:'IBM Plex Mono',monospace; font-size:.6rem; color:var(--muted); }
   .count-display { font-family:'IBM Plex Mono',monospace; font-size:.65rem; color:var(--muted); }
@@ -81,11 +123,14 @@
 
   @media(max-width:600px){
     header{padding:1.1rem 1rem .9rem}
+    #next-banner{padding:.4rem 1rem;font-size:.65rem;text-align:left}
     .controls{padding:.7rem 1rem}
+    #admin-bar{padding:.35rem 1rem;font-size:.6rem}
     .timeline{padding:1rem}
     .entry{grid-template-columns:72px 1fr}
     .entry-status{grid-column:2;justify-self:start;margin-top:.2rem}
     .entry:hover{margin:0 -1rem;padding-left:1rem;padding-right:1rem}
+    #legend{bottom:.75rem;right:.5rem;font-size:.5rem;padding:.35rem .5rem}
     footer{padding:.7rem 1rem}
   }
 </style>
@@ -94,7 +139,7 @@
 
 <header>
   <div class="header-label">Општина Аеродром · Скопје · 2026</div>
-  <h1>Кабаст <span>Отпад</span></h1>
+  <h1 id="admin-toggle">Кабаст <span>Отпад</span></h1>
   <div class="header-meta">
     <div class="meta-item"><strong>18 МАЈ — 9 ЈУЛИ</strong>Период на акцијата</div>
     <div class="meta-item"><strong>БЕСПЛАТНО</strong>Стар мебел &amp; кабаст отпад</div>
@@ -102,9 +147,11 @@
   </div>
 </header>
 
+<div id="next-banner"></div>
+
 <div class="tabs">
-  <button class="tab-btn active" data-tab="map">🗺 Карта</button>
-  <button class="tab-btn" data-tab="schedule">☰ Распоред</button>
+  <button class="tab-btn active" data-tab="map">Карта</button>
+  <button class="tab-btn" data-tab="schedule">Распоред</button>
 </div>
 
 <div class="controls">
@@ -120,255 +167,461 @@
   </div>
 </div>
 
+<div id="admin-bar">
+  <span><span class="admin-indicator"></span>Админ режим</span>
+  <button class="admin-btn admin-save" onclick="adminSave()">Зачувај</button>
+  <button class="admin-btn" onclick="adminExport()">Извези JSON</button>
+  <button class="admin-btn" onclick="document.getElementById('admin-import-input').click()">Увези JSON</button>
+  <input type="file" id="admin-import-input" accept=".json" style="display:none" onchange="adminImport(event)">
+  <button class="admin-btn danger" onclick="adminExit()">Излези</button>
+</div>
+
 <div class="panel active" id="map-panel">
   <div id="map"></div>
+  <div id="legend">
+    <span><span class="leg-dot" style="background:#e8ff3b"></span> Претстојни</span>
+    <span><span class="leg-dot" style="background:#ff6b2b"></span> Активни</span>
+    <span><span class="leg-dot" style="background:#444"></span> Завршени</span>
+  </div>
 </div>
 
 <div class="panel" id="schedule-panel">
-<div class="timeline" id="timeline">
-
-  <div class="month-header">МАЈ <span class="month-count"></span></div>
-
-  <div class="entry" data-dates="2026-05-18,2026-05-19" data-reon="Мичурин" data-lat="41.9861" data-lng="21.4469">
-    <div class="entry-date">18–19.05</div><div class="entry-main"><div class="entry-reon">Мичурин</div><div class="entry-location">ул. Анастас Митрев — зад парк до трансформатор</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-05-18,2026-05-19" data-reon="Мичурин" data-lat="41.9913" data-lng="21.4464">
-    <div class="entry-date">18–19.05</div><div class="entry-main"><div class="entry-reon">Мичурин</div><div class="entry-location">ул. Бенјамин Мачуковски — до трансформатор кај железничката станица</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-05-20,2026-05-21" data-reon="Острово" data-lat="41.9884" data-lng="21.4529">
-    <div class="entry-date">20–21.05</div><div class="entry-main"><div class="entry-reon">Острово</div><div class="entry-location">ул. Владимир Комаров бр. 9 — до контејнерите</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-05-20,2026-05-21" data-reon="Острово" data-lat="41.9877" data-lng="21.4535">
-    <div class="entry-date">20–21.05</div><div class="entry-main"><div class="entry-reon">Острово</div><div class="entry-location">ул. Владимир Комаров бр. 6–16 — зад ТЦ Скопјанка</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-05-22,2026-05-25" data-reon="13 Ноември" data-lat="41.9860" data-lng="21.4616">
-    <div class="entry-date">22–25.05</div><div class="entry-main"><div class="entry-reon">13 Ноември</div><div class="entry-location">бул. Јане Сандански бр. 9 — до подземни контејнери</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-05-26,2026-05-27" data-reon="13 Ноември" data-lat="41.9893" data-lng="21.4772">
-    <div class="entry-date">26–27.05</div><div class="entry-main"><div class="entry-reon">13 Ноември</div><div class="entry-location">бул. АСНОМ зад бр. 20 — кај фудбалското игралиште</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-05-26,2026-05-27" data-reon="Пензионерски дом" data-lat="41.9850" data-lng="21.4657">
-    <div class="entry-date">26–27.05</div><div class="entry-main"><div class="entry-reon">Пензионерски дом</div><div class="entry-location">Голем паркинг кај пензионерски дом — поранешен ресторан Бисера</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-05-28,2026-05-31" data-reon="Стар Аеродром" data-lat="41.9831" data-lng="21.4551">
-    <div class="entry-date">28–31.05</div><div class="entry-main"><div class="entry-reon">Стар Аеродром — Црква</div><div class="entry-location">ул. Коста Новаковиќ бр. 42 — кај контејнерите</div></div><div class="entry-status"></div>
-  </div>
-
-  <div class="month-header">ЈУНИ <span class="month-count"></span></div>
-
-  <div class="entry" data-dates="2026-06-01,2026-06-02" data-reon="Стар Аеродром" data-lat="41.9883" data-lng="21.4650">
-    <div class="entry-date">01–02.06</div><div class="entry-main"><div class="entry-reon">Стар Аеродром — Црква</div><div class="entry-location">Голем паркинг пред градинка Калинка</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-01,2026-06-02" data-reon="Воени кули" data-lat="41.9863" data-lng="21.4549">
-    <div class="entry-date">01–02.06</div><div class="entry-main"><div class="entry-reon">Воени кули</div><div class="entry-location">ул. Милан Зечар — кај воените кули</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-03,2026-06-04" data-reon="Цевахир" data-lat="41.9797" data-lng="21.4664">
-    <div class="entry-date">03–04.06</div><div class="entry-main"><div class="entry-reon">Цевахир</div><div class="entry-location">ул. 1615 — во близина на кулите на Цевахир</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-03,2026-06-04" data-reon="Индустриска УЕВ" data-lat="41.9857" data-lng="21.4496">
-    <div class="entry-date">03–04.06</div><div class="entry-main"><div class="entry-reon">Индустриска УЕВ</div><div class="entry-location">кај Мегаши — зад пункот на ЈП Паркови и зеленило</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-05,2026-06-07" data-reon="Јане Сандански" data-lat="41.9860" data-lng="21.4616">
-    <div class="entry-date">05–07.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — десно</div><div class="entry-location">бул. Јане Сандански бр. 36 — паркинг (поранешна Чунга Лунга)</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-05,2026-06-07" data-reon="Јане Сандански" data-lat="41.9820" data-lng="21.4690">
-    <div class="entry-date">05–07.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — десно</div><div class="entry-location">бул. Јане Сандански бр. 110 — паркинг во близина на Св. Петка</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-08,2026-06-09" data-reon="Јане Сандански" data-lat="41.9905" data-lng="21.4645">
-    <div class="entry-date">08–09.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — десно</div><div class="entry-location">бул. Јане Сандански бр. 25 — кај Лесковачка</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-08,2026-06-09" data-reon="Јане Сандански" data-lat="41.9910" data-lng="21.4677">
-    <div class="entry-date">08–09.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — десно</div><div class="entry-location">бул. АСНОМ бр. 56 — кај контејнерите</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-10,2026-06-11" data-reon="Јане Сандански" data-lat="41.9895" data-lng="21.4700">
-    <div class="entry-date">10–11.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — десно</div><div class="entry-location">бул. АСНОМ бр. 72 — пред М-маркет</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-10,2026-06-11" data-reon="Јане Сандански" data-lat="41.9868" data-lng="21.4688">
-    <div class="entry-date">10–11.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — десно</div><div class="entry-location">бул. Јане Сандански бр. 65 — кај кулите</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-12,2026-06-14" data-reon="Јане Сандански" data-lat="41.9876" data-lng="21.4730">
-    <div class="entry-date">12–14.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — десно</div><div class="entry-location">бул. АСНОМ бр. 104 — на влез кај Лукоил</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-12,2026-06-14" data-reon="Јане Сандански" data-lat="41.9870" data-lng="21.4720">
-    <div class="entry-date">12–14.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — лево</div><div class="entry-location">бул. Јане Сандански бр. 103 — на влез кај Св. Никола</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-15,2026-06-16" data-reon="Јане Сандански" data-lat="41.9858" data-lng="21.4745">
-    <div class="entry-date">15–16.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — лево</div><div class="entry-location">бул. В.С. Бато бр. 19 — кај монтажниот паркинг</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-15,2026-06-16" data-reon="Јане Сандански" data-lat="41.9877" data-lng="21.4741">
-    <div class="entry-date">15–16.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — лево</div><div class="entry-location">бул. АСНОМ бр. 120 — паркинг кај бензинска Окта</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-17,2026-06-18" data-reon="Јане Сандански" data-lat="41.9848" data-lng="21.4758">
-    <div class="entry-date">17–18.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — лево</div><div class="entry-location">бул. В.С. Бато бр. 39 — спроти сивите кули на паркинг</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-17,2026-06-18" data-reon="Јане Сандански" data-lat="41.9840" data-lng="21.4780">
-    <div class="entry-date">17–18.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — лево</div><div class="entry-location">бул. АСНОМ бр. 150–154 — до контејнерите кај плавите кули</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-19,2026-06-21" data-reon="Јане Сандански" data-lat="41.9837" data-lng="21.4816">
-    <div class="entry-date">19–21.06</div><div class="entry-main"><div class="entry-reon">Јане Сандански — лево</div><div class="entry-location">бул. АСНОМ бр. 184 — кај подземните контејнери</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-19,2026-06-21" data-reon="Ново Лисиче" data-lat="41.9812" data-lng="21.4728">
-    <div class="entry-date">19–21.06</div><div class="entry-main"><div class="entry-reon">Ново Лисиче</div><div class="entry-location">бул. В.С. Бато бр. 87 — на паркинг</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-22,2026-06-23" data-reon="Февруарски поход" data-lat="41.9842" data-lng="21.4838">
-    <div class="entry-date">22–23.06</div><div class="entry-main"><div class="entry-reon">Февруарски поход</div><div class="entry-location">Спроти Рамстор — кај бензинска на паркинг</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-22,2026-06-23" data-reon="Февруарски поход" data-lat="41.9835" data-lng="21.4850">
-    <div class="entry-date">22–23.06</div><div class="entry-main"><div class="entry-reon">Февруарски поход</div><div class="entry-location">Кај трансформаторот — до куќите</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-24,2026-06-25" data-reon="Реонски центар" data-lat="41.9855" data-lng="21.4830">
-    <div class="entry-date">24–25.06</div><div class="entry-main"><div class="entry-reon">Реонски центар</div><div class="entry-location">бул. В.С. Бато бр. 2а — кај Горење</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-24,2026-06-25" data-reon="Реонски центар" data-lat="41.9848" data-lng="21.4845">
-    <div class="entry-date">24–25.06</div><div class="entry-main"><div class="entry-reon">Реонски центар</div><div class="entry-location">бул. В.С. Бато бр. 30 — на паркинг</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-26,2026-06-28" data-reon="Пирин" data-lat="41.9780" data-lng="21.4795">
-    <div class="entry-date">26–28.06</div><div class="entry-main"><div class="entry-reon">Пирин</div><div class="entry-location">ул. Димитар Туриманчовски — спроти трговски центар кај Пирин</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-26,2026-06-28" data-reon="Препунтна станица" data-lat="41.9770" data-lng="21.4810">
-    <div class="entry-date">26–28.06</div><div class="entry-main"><div class="entry-reon">Препунтна станица</div><div class="entry-location">ул. Ернест Телман — кај препунтната станица</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-29,2026-06-30" data-reon="Библиотека" data-lat="41.9868" data-lng="21.4672">
-    <div class="entry-date">29–30.06</div><div class="entry-main"><div class="entry-reon">Библиотека</div><div class="entry-location">ул. Мите Богоевски бр. 38 — во близина на библиотеката</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-06-29,2026-06-30" data-reon="Нас. Лисиче" data-lat="41.9738" data-lng="21.4761">
-    <div class="entry-date">29–30.06</div><div class="entry-main"><div class="entry-reon">Нас. Лисиче</div><div class="entry-location">Раскрсница — ул. Димитар Македонски и бул. 12 Мај бригада</div></div><div class="entry-status"></div>
-  </div>
-
-  <div class="month-header">ЈУЛИ <span class="month-count"></span></div>
-
-  <div class="entry" data-dates="2026-07-01,2026-07-02" data-reon="Горѓи Капчев" data-lat="41.9758" data-lng="21.4840">
-    <div class="entry-date">01–02.07</div><div class="entry-main"><div class="entry-reon">Горѓи Капчев</div><div class="entry-location">На последна 27-ка — кај трансформаторот</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-07-01,2026-07-02" data-reon="Горѓи Капчев" data-lat="41.9740" data-lng="21.4866">
-    <div class="entry-date">01–02.07</div><div class="entry-main"><div class="entry-reon">Горѓи Капчев</div><div class="entry-location">Кај парк Бановина</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-07-03,2026-07-05" data-reon="Горѓи Капчев" data-lat="41.9750" data-lng="21.4878">
-    <div class="entry-date">03–05.07</div><div class="entry-main"><div class="entry-reon">Горѓи Капчев</div><div class="entry-location">Кај паркот на последна 17-ка</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-07-03,2026-07-05" data-reon="Тодор Чангов" data-lat="41.9783" data-lng="21.4821">
-    <div class="entry-date">03–05.07</div><div class="entry-main"><div class="entry-reon">Тодор Чангов</div><div class="entry-location">Спроти ресторан Рагуза</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-07-06,2026-07-07" data-reon="Горно Лисиче" data-lat="41.9700" data-lng="21.4870">
-    <div class="entry-date">06–07.07</div><div class="entry-main"><div class="entry-reon">Горно Лисиче</div><div class="entry-location">Пред ОУ Гоце Делчев</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-07-06,2026-07-07" data-reon="Горно Лисиче" data-lat="41.9645" data-lng="21.4936">
-    <div class="entry-date">06–07.07</div><div class="entry-main"><div class="entry-reon">Горно Лисиче</div><div class="entry-location">Во близина на Св. Троица</div></div><div class="entry-status"></div>
-  </div>
-  <div class="entry" data-dates="2026-07-08,2026-07-09" data-reon="Долно Лисиче" data-lat="41.9563" data-lng="21.5342">
-    <div class="entry-date">08–09.07</div><div class="entry-main"><div class="entry-reon">Долно Лисиче</div><div class="entry-location">Пред надвозникот</div></div><div class="entry-status"></div>
-  </div>
-
-</div>
+  <div class="timeline" id="timeline"></div>
 </div>
 
 <footer>
-  <div class="footer-note">Извор: aerodrom.gov.mk · ЈП за Комунални дејности · Tiles © CARTO / OSM</div>
-  <div class="count-display">Прикажани: <span id="visible-count">–</span> локации</div>
+  <div class="footer-note">Извор: aerodrom.gov.mk · ЈП за Комунални дејности · Tiles &copy; CARTO / OSM</div>
+  <div class="count-display">Прикажани: <span id="visible-count">&ndash;</span> локации</div>
 </footer>
 
+<div class="admin-toast" id="admin-toast"></div>
+
 <script>
-// ── STATUS ──
+// ══════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════
+
+const BASE_DATA = [
+  {id:0,  s:'2026-05-18',e:'2026-05-19', r:'Мичурин',                      l:'ул. Анастас Митрев — зад парк до трансформатор',                            la:41.9861,ln:21.4469},
+  {id:1,  s:'2026-05-18',e:'2026-05-19', r:'Мичурин',                      l:'ул. Бенјамин Мачуковски — до трансформатор кај железничката станица',        la:41.9913,ln:21.4464},
+  {id:2,  s:'2026-05-20',e:'2026-05-21', r:'Острово',                      l:'ул. Владимир Комаров бр. 9 — до контејнерите',                               la:41.9884,ln:21.4529},
+  {id:3,  s:'2026-05-20',e:'2026-05-21', r:'Острово',                      l:'ул. Владимир Комаров бр. 6–16 — зад ТЦ Скопјанка',                           la:41.9877,ln:21.4535},
+  {id:4,  s:'2026-05-22',e:'2026-05-25', r:'13 Ноември',                   l:'бул. Јане Сандански бр. 9 — до подземни контејнери',                         la:41.9860,ln:21.4616},
+  {id:5,  s:'2026-05-26',e:'2026-05-27', r:'13 Ноември',                   l:'бул. АСНОМ зад бр. 20 — кај фудбалското игралиште',                          la:41.9893,ln:21.4772},
+  {id:6,  s:'2026-05-26',e:'2026-05-27', r:'Пензионерски дом',             l:'Голем паркинг кај пензионерски дом — поранешен ресторан Бисера',              la:41.9850,ln:21.4657},
+  {id:7,  s:'2026-05-28',e:'2026-05-31', r:'Стар Аеродром — Црква',        l:'ул. Коста Новаковиќ бр. 42 — кај контејнерите',                               la:41.9831,ln:21.4551},
+  {id:8,  s:'2026-06-01',e:'2026-06-02', r:'Стар Аеродром — Црква',        l:'Голем паркинг пред градинка Калинка',                                          la:41.9883,ln:21.4650},
+  {id:9,  s:'2026-06-01',e:'2026-06-02', r:'Воени кули',                   l:'ул. Милан Зечар — кај воените кули',                                           la:41.9863,ln:21.4549},
+  {id:10, s:'2026-06-03',e:'2026-06-04', r:'Цевахир',                      l:'ул. 1615 — во близина на кулите на Цевахир',                                  la:41.9797,ln:21.4664},
+  {id:11, s:'2026-06-03',e:'2026-06-04', r:'Индустриска УЕВ',              l:'кај Мегаши — зад пункот на ЈП Паркови и зеленило',                            la:41.9857,ln:21.4496},
+  {id:12, s:'2026-06-05',e:'2026-06-07', r:'Јане Сандански — десно',       l:'бул. Јане Сандански бр. 36 — паркинг (поранешна Чунга Лунга)',                la:41.9860,ln:21.4616},
+  {id:13, s:'2026-06-05',e:'2026-06-07', r:'Јане Сандански — десно',       l:'бул. Јане Сандански бр. 110 — паркинг во близина на Св. Петка',              la:41.9820,ln:21.4690},
+  {id:14, s:'2026-06-08',e:'2026-06-09', r:'Јане Сандански — десно',       l:'бул. Јане Сандански бр. 25 — кај Лесковачка',                                 la:41.9905,ln:21.4645},
+  {id:15, s:'2026-06-08',e:'2026-06-09', r:'Јане Сандански — десно',       l:'бул. АСНОМ бр. 56 — кај контејнерите',                                        la:41.9910,ln:21.4677},
+  {id:16, s:'2026-06-10',e:'2026-06-11', r:'Јане Сандански — десно',       l:'бул. АСНОМ бр. 72 — пред М-маркет',                                           la:41.9895,ln:21.4700},
+  {id:17, s:'2026-06-10',e:'2026-06-11', r:'Јане Сандански — десно',       l:'бул. Јане Сандански бр. 65 — кај кулите',                                     la:41.9868,ln:21.4688},
+  {id:18, s:'2026-06-12',e:'2026-06-14', r:'Јане Сандански — десно',       l:'бул. АСНОМ бр. 104 — на влез кај Лукоил',                                     la:41.9876,ln:21.4730},
+  {id:19, s:'2026-06-12',e:'2026-06-14', r:'Јане Сандански — лево',        l:'бул. Јане Сандански бр. 103 — на влез кај Св. Никола',                        la:41.9870,ln:21.4720},
+  {id:20, s:'2026-06-15',e:'2026-06-16', r:'Јане Сандански — лево',        l:'бул. В.С. Бато бр. 19 — кај монтажниот паркинг',                              la:41.9858,ln:21.4745},
+  {id:21, s:'2026-06-15',e:'2026-06-16', r:'Јане Сандански — лево',        l:'бул. АСНОМ бр. 120 — паркинг кај бензинска Окта',                             la:41.9877,ln:21.4741},
+  {id:22, s:'2026-06-17',e:'2026-06-18', r:'Јане Сандански — лево',        l:'бул. В.С. Бато бр. 39 — спроти сивите кули на паркинг',                       la:41.9848,ln:21.4758},
+  {id:23, s:'2026-06-17',e:'2026-06-18', r:'Јане Сандански — лево',        l:'бул. АСНОМ бр. 150–154 — до контејнерите кај плавите кули',                   la:41.9840,ln:21.4780},
+  {id:24, s:'2026-06-19',e:'2026-06-21', r:'Јане Сандански — лево',        l:'бул. АСНОМ бр. 184 — кај подземните контејнери',                              la:41.9837,ln:21.4816},
+  {id:25, s:'2026-06-19',e:'2026-06-21', r:'Ново Лисиче',                  l:'бул. В.С. Бато бр. 87 — на паркинг',                                           la:41.9812,ln:21.4728},
+  {id:26, s:'2026-06-22',e:'2026-06-23', r:'Февруарски поход',             l:'Спроти Рамстор — кај бензинска на паркинг',                                    la:41.9842,ln:21.4838},
+  {id:27, s:'2026-06-22',e:'2026-06-23', r:'Февруарски поход',             l:'Кај трансформаторот — до куќите',                                              la:41.9835,ln:21.4850},
+  {id:28, s:'2026-06-24',e:'2026-06-25', r:'Реонски центар',               l:'бул. В.С. Бато бр. 2а — кај Горење',                                           la:41.9855,ln:21.4830},
+  {id:29, s:'2026-06-24',e:'2026-06-25', r:'Реонски центар',               l:'бул. В.С. Бато бр. 30 — на паркинг',                                           la:41.9848,ln:21.4845},
+  {id:30, s:'2026-06-26',e:'2026-06-28', r:'Пирин',                        l:'ул. Димитар Туриманчовски — спроти трговски центар кај Пирин',                la:41.9780,ln:21.4795},
+  {id:31, s:'2026-06-26',e:'2026-06-28', r:'Препунтна станица',            l:'ул. Ернест Телман — кај препунтната станица',                                  la:41.9770,ln:21.4810},
+  {id:32, s:'2026-06-29',e:'2026-06-30', r:'Библиотека',                   l:'ул. Мите Богоевски бр. 38 — во близина на библиотеката',                       la:41.9868,ln:21.4672},
+  {id:33, s:'2026-06-29',e:'2026-06-30', r:'Нас. Лисиче',                  l:'Раскрсница — ул. Димитар Македонски и бул. 12 Мај бригада',                    la:41.9738,ln:21.4761},
+  {id:34, s:'2026-07-01',e:'2026-07-02', r:'Горѓи Капчев',                 l:'На последна 27-ка — кај трансформаторот',                                      la:41.9758,ln:21.4840},
+  {id:35, s:'2026-07-01',e:'2026-07-02', r:'Горѓи Капчев',                 l:'Кај парк Бановина',                                                             la:41.9740,ln:21.4866},
+  {id:36, s:'2026-07-03',e:'2026-07-05', r:'Горѓи Капчев',                 l:'Кај паркот на последна 17-ка',                                                  la:41.9750,ln:21.4878},
+  {id:37, s:'2026-07-03',e:'2026-07-05', r:'Тодор Чангов',                l:'Спроти ресторан Рагуза',                                                        la:41.9783,ln:21.4821},
+  {id:38, s:'2026-07-06',e:'2026-07-07', r:'Горно Лисиче',                l:'Пред ОУ Гоце Делчев',                                                           la:41.9700,ln:21.4870},
+  {id:39, s:'2026-07-06',e:'2026-07-07', r:'Горно Лисиче',                l:'Во близина на Св. Троица',                                                      la:41.9645,ln:21.4936},
+  {id:40, s:'2026-07-08',e:'2026-07-09', r:'Долно Лисиче',                l:'Пред надвозникот',                                                              la:41.9563,ln:21.5342},
+];
+
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+
+let data = [];
+let nextId = BASE_DATA.length;
+let allMarkers = [];
+let map = null;
+let cf = 'all', cs = '';
+let adminMode = false;
+let editingId = null;
+
+const MONTHS = {5:'МАЈ',6:'ЈУНИ',7:'ЈУЛИ'};
+const STATUS_LABEL = {upcoming:'Претстојно',active:'● Активно',done:'Завршено'};
+const STATUS_CLASS = {upcoming:'status-upcoming',active:'status-active',done:'status-done'};
+
 const today = new Date(); today.setHours(0,0,0,0);
-function pd(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
-function getStatus(e){
-  const[s,en]=e.dataset.dates.split(',');
-  const start=pd(s),end=pd(en); end.setHours(23,59,59);
+function parseDate(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+
+function getStatus(item){
+  const start=parseDate(item.s), end=parseDate(item.e); end.setHours(23,59,59);
   return today>end?'done':today>=start?'active':'upcoming';
 }
 
-const entries=document.querySelectorAll('.entry');
-entries.forEach(e=>{
-  const st=getStatus(e); e.dataset.status=st;
-  const b=e.querySelector('.entry-status');
-  if(st==='done'){b.textContent='Завршено';b.className='entry-status status-done';e.style.opacity='.45';}
-  else if(st==='active'){b.textContent='● Активно';b.className='entry-status status-active';}
-  else{b.textContent='Претстојно';b.className='entry-status status-upcoming';}
-});
+// ══════════════════════════════════════════════════
+// PERSISTENCE
+// ══════════════════════════════════════════════════
 
-// ── MAP ──
-const map=L.map('map').setView([41.982,21.470],13);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-  attribution:'© <a href="https://carto.com/">CARTO</a> © <a href="https://openstreetmap.org">OSM</a>',
-  subdomains:'abcd', maxZoom:19
-}).addTo(map);
+function loadData(){
+  try{
+    const saved=localStorage.getItem('kabast_data');
+    if(saved){data=JSON.parse(saved); return;}
+  }catch(e){}
+  data=JSON.parse(JSON.stringify(BASE_DATA));
+}
+function saveData(){
+  localStorage.setItem('kabast_data',JSON.stringify(data));
+}
+
+// ══════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════
+
+function fmtDate(s,e){
+  const [sy,sm,sd]=s.split('-'), [ey,em,ed]=e.split('-');
+  return sd+'.'+sm+'–'+ed+'.'+em;
+}
+
+function renderSchedule(){
+  const tl=document.getElementById('timeline');
+  const groups={};
+  data.forEach(item=>{
+    const m=new Date(item.s).getMonth();
+    if(!groups[m]) groups[m]=[];
+    groups[m].push(item);
+  });
+  let html='';
+  Object.keys(groups).sort().forEach(m=>{
+    html+=`<div class="month-header">${MONTHS[m]||''} <span class="month-count"></span></div>`;
+    groups[m].forEach(item=>{
+      const st=getStatus(item); const df=fmtDate(item.s,item.e);
+      html+=`<div class="entry" data-id="${item.id}" data-status="${st}">
+        <div class="entry-date">${df}</div>
+        <div class="entry-main">
+          <div class="entry-reon">${esc(item.r)}</div>
+          <div class="entry-location">${esc(item.l)}</div>
+        </div>
+        <div class="entry-status ${STATUS_CLASS[st]}">${STATUS_LABEL[st]}</div>
+      </div>`;
+    });
+  });
+  tl.innerHTML=html;
+  tl.querySelectorAll('.entry').forEach(el=>{
+    const id=parseInt(el.dataset.id);
+    const item=data.find(d=>d.id===id);
+    if(!item) return;
+    el.addEventListener('click',()=>{
+      if(adminMode){ adminEditEntry(id); return; }
+      focusMapItem(item);
+    });
+  });
+}
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function focusMapItem(item){
+  switchTab('map');
+  setTimeout(()=>{
+    map.setView([item.la,item.ln],16,{animate:true});
+    allMarkers.forEach(m=>{ if(m._kabastId===item.id) m.openPopup(); });
+  },50);
+}
+
+// ══════════════════════════════════════════════════
+// NEXT UPCOMING BANNER
+// ══════════════════════════════════════════════════
+
+function updateBanner(){
+  const banner=document.getElementById('next-banner');
+  const upcoming=data.filter(d=>getStatus(d)==='upcoming').sort((a,b)=>a.s.localeCompare(b.s));
+  if(upcoming.length===0){
+    const activeItems=data.filter(d=>getStatus(d)==='active');
+    if(activeItems.length>0){
+      const a=activeItems[0];
+      banner.innerHTML='<strong>● Активно сега:</strong> '+esc(a.r)+' — '+fmtDate(a.s,a.e);
+      banner.style.display='block';
+      banner.onclick=()=>focusMapItem(a);
+    }else{ banner.style.display='none'; }
+    return;
+  }
+  const next=upcoming[0];
+  banner.innerHTML='<strong>Следна локација:</strong> '+esc(next.r)+' — '+fmtDate(next.s,next.e);
+  banner.style.display='block';
+  banner.onclick=()=>focusMapItem(next);
+}
+
+// ══════════════════════════════════════════════════
+// MAP
+// ══════════════════════════════════════════════════
+
+function initMap(){
+  map=L.map('map').setView([41.982,21.470],13);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://openstreetmap.org">OSM</a>',
+    subdomains:'abcd', maxZoom:19
+  }).addTo(map);
+}
 
 function mkIcon(st){
   const c={upcoming:'#e8ff3b',active:'#ff6b2b',done:'#444'}[st]||'#e8ff3b';
   return L.divIcon({className:'',
-    html:`<div style="width:11px;height:11px;background:${c};border:2px solid #000;border-radius:50%;box-shadow:0 0 0 2px ${c}55;"></div>`,
+    html:'<div style="width:11px;height:11px;background:'+c+';border:2px solid #000;border-radius:50%;box-shadow:0 0 0 2px '+c+'55;"></div>',
     iconSize:[11,11],iconAnchor:[5,5],popupAnchor:[0,-8]});
 }
 
-const allMarkers=[];
-const statusLabel={upcoming:'Претстојно',active:'● Активно',done:'Завршено'};
-
-entries.forEach(e=>{
-  const lat=parseFloat(e.dataset.lat), lng=parseFloat(e.dataset.lng);
-  if(!lat||!lng) return;
-  const st=e.dataset.status;
-  const reon=e.querySelector('.entry-reon').textContent;
-  const loc=e.querySelector('.entry-location').textContent;
-  const dt=e.querySelector('.entry-date').textContent;
-
-  const m=L.marker([lat,lng],{icon:mkIcon(st)}).addTo(map);
-  m.bindPopup(`<div class="p-reon">${reon}</div><div class="p-loc">${loc}</div><div class="p-date ${st}">${dt} · ${statusLabel[st]}</div>`,{maxWidth:220});
-  m.eStatus=st; m.eReon=reon.toLowerCase(); m.eLoc=loc.toLowerCase();
-  allMarkers.push(m);
-
-  e.addEventListener('click',()=>{
-    switchTab('map');
-    setTimeout(()=>{map.setView([lat,lng],16,{animate:true}); m.openPopup();},50);
+function renderMarkers(){
+  allMarkers.forEach(m=>map.removeLayer(m));
+  allMarkers=[];
+  data.forEach(item=>{
+    const st=getStatus(item); const df=fmtDate(item.s,item.e);
+    const gmLink='https://www.google.com/maps?q='+item.la+','+item.ln;
+    const shareText='Кабаст отпад — '+item.r+': '+item.l+' ('+df+')';
+    const m=L.marker([item.la,item.ln],{icon:mkIcon(st)}).addTo(map);
+    m.bindPopup(
+      '<div class="p-reon">'+esc(item.r)+'</div>'+
+      '<div class="p-loc">'+esc(item.l)+'</div>'+
+      '<div class="p-date '+st+'">'+df+' · '+STATUS_LABEL[st]+'</div>'+
+      '<div class="popup-actions">'+
+        '<a class="popup-btn" href="'+gmLink+'" target="_blank" rel="noopener">Google Maps</a>'+
+        '<button class="popup-btn" onclick="shareLocation(\''+esc(shareText)+'\',\''+gmLink+'\')">Сподели</button>'+
+      '</div>',
+    {maxWidth:240});
+    m._kabastId=item.id; m._kabastStatus=st;
+    m._kabastReon=item.r.toLowerCase(); m._kabastLoc=item.l.toLowerCase();
+    allMarkers.push(m);
   });
-});
-
-// ── TABS ──
-function switchTab(id){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===id+'-panel'));
-  if(id==='map') setTimeout(()=>map.invalidateSize(),10);
 }
-document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
 
-// ── FILTER ──
-let cf='all', cs='';
+function shareLocation(text,url){
+  const full=text+'\n'+url;
+  if(navigator.share){ navigator.share({title:'Кабаст Отпад',text:text,url:url}).catch(function(){}); }
+  else{ navigator.clipboard.writeText(full).then(function(){ showToast('Копирано во клипборд'); }).catch(function(){}); }
+}
+
+// ══════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════
+
+function switchTab(id){
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.toggle('active',b.dataset.tab===id);});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.toggle('active',p.id===id+'-panel');});
+  if(id==='map') setTimeout(function(){map.invalidateSize();},10);
+}
+document.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){switchTab(b.dataset.tab);});});
+
+// ══════════════════════════════════════════════════
+// FILTER
+// ══════════════════════════════════════════════════
 
 function applyFilters(){
-  entries.forEach(e=>{
-    const mf=cf==='all'||e.dataset.status===cf;
-    const reon=(e.querySelector('.entry-reon')?.textContent||'').toLowerCase();
-    const loc=(e.querySelector('.entry-location')?.textContent||'').toLowerCase();
+  const entries=document.querySelectorAll('.entry');
+  entries.forEach(function(el){
+    const mf=cf==='all'||el.dataset.status===cf;
+    const reon=(el.querySelector('.entry-reon')?.textContent||'').toLowerCase();
+    const loc=(el.querySelector('.entry-location')?.textContent||'').toLowerCase();
     const ms=!cs||reon.includes(cs)||loc.includes(cs);
-    e.classList.toggle('hidden',!(mf&&ms));
+    el.classList.toggle('hidden',!(mf&&ms));
   });
-  allMarkers.forEach(m=>{
-    const mf=cf==='all'||m.eStatus===cf;
-    const ms=!cs||m.eReon.includes(cs)||m.eLoc.includes(cs);
-    if(mf&&ms){if(!map.hasLayer(m))map.addLayer(m);}
-    else{if(map.hasLayer(m))map.removeLayer(m);}
+  allMarkers.forEach(function(m){
+    const mf=cf==='all'||m._kabastStatus===cf;
+    const ms=!cs||m._kabastReon.includes(cs)||m._kabastLoc.includes(cs);
+    if(mf&&ms){if(!map.hasLayer(m))map.addLayer(m);}else{if(map.hasLayer(m))map.removeLayer(m);}
   });
-  // month headers
-  document.querySelectorAll('.month-header').forEach(h=>{
-    let cnt=0,el=h.nextElementSibling;
-    while(el&&!el.classList.contains('month-header')){
-      if(el.classList.contains('entry')&&!el.classList.contains('hidden'))cnt++;
-      el=el.nextElementSibling;
-    }
-    h.querySelector('.month-count').textContent=cnt?`${cnt} лок.`:'';
-    h.style.display=cnt?'':'none';
+  document.querySelectorAll('.month-header').forEach(function(h){
+    var c=0,el=h.nextElementSibling;
+    while(el&&!el.classList.contains('month-header')){if(el.classList.contains('entry')&&!el.classList.contains('hidden'))c++;el=el.nextElementSibling;}
+    h.querySelector('.month-count').textContent=c?c+' лок.':'';
+    h.style.display=c?'':'none';
   });
   document.getElementById('visible-count').textContent=document.querySelectorAll('.entry:not(.hidden)').length;
 }
 
-document.querySelectorAll('.filter-btn').forEach(b=>{
-  b.addEventListener('click',()=>{
-    document.querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active'));
+document.querySelectorAll('.filter-btn').forEach(function(b){
+  b.addEventListener('click',function(){
+    document.querySelectorAll('.filter-btn').forEach(function(x){x.classList.remove('active');});
     b.classList.add('active'); cf=b.dataset.filter; applyFilters();
   });
 });
-document.getElementById('search').addEventListener('input',e=>{cs=e.target.value.toLowerCase().trim();applyFilters();});
+document.getElementById('search').addEventListener('input',function(e){cs=e.target.value.toLowerCase().trim();applyFilters();});
 
-applyFilters();
+// ══════════════════════════════════════════════════
+// ADMIN MODE
+// ══════════════════════════════════════════════════
+
+var adminClicks=0, adminTimer=null;
+document.getElementById('admin-toggle').addEventListener('click',function(){
+  adminClicks++;
+  if(adminTimer) clearTimeout(adminTimer);
+  adminTimer=setTimeout(function(){adminClicks=0;},800);
+  if(adminClicks>=5){ adminClicks=0; adminEnter(); }
+});
+
+if(window.location.hash==='#admin') adminEnter();
+
+function adminEnter(){
+  if(adminMode) return;
+  adminMode=true;
+  document.body.classList.add('admin-mode');
+  document.getElementById('admin-bar').classList.add('show');
+  showToast('Админ режим — едитирајте ги локациите со клик');
+}
+
+function adminExit(){
+  adminMode=false;
+  document.body.classList.remove('admin-mode');
+  document.getElementById('admin-bar').classList.remove('show');
+  editingId=null;
+  fullRender();
+}
+
+function adminEditEntry(id){
+  if(editingId===id){ editingId=null; fullRender(); return; }
+  editingId=id;
+  fullRender();
+  var item=data.find(function(d){return d.id===id;});
+  if(!item) return;
+  document.querySelectorAll('.entry').forEach(function(el){
+    if(parseInt(el.dataset.id)===id){
+      el.classList.add('admin-editing');
+      var dateHtml='<input class="admin-edit-field" id="admin-f-s" value="'+item.s+'" style="width:100px" title="Почетен датум (YYYY-MM-DD)"> — <input class="admin-edit-field" id="admin-f-e" value="'+item.e+'" style="width:100px" title="Краен датум (YYYY-MM-DD)">';
+      el.querySelector('.entry-date').outerHTML=dateHtml;
+      el.querySelector('.entry-reon').outerHTML='<input class="admin-edit-field" id="admin-f-r" value="'+esc(item.r)+'" style="width:100%" title="Реон">';
+      el.querySelector('.entry-location').outerHTML='<input class="admin-edit-field" id="admin-f-l" value="'+esc(item.l)+'" style="width:100%" title="Локација">';
+      el.querySelector('.entry-status').outerHTML='<button class="admin-btn admin-save" onclick="adminSaveSingle('+id+')" style="font-size:.55rem;padding:.15rem .4rem">Зачувај</button> <button class="admin-btn danger" onclick="adminDelete('+id+')" style="font-size:.55rem;padding:.15rem .4rem">Избриши</button>';
+    }
+  });
+}
+
+function adminSaveSingle(id){
+  var s=document.getElementById('admin-f-s')?.value;
+  var e=document.getElementById('admin-f-e')?.value;
+  var r=document.getElementById('admin-f-r')?.value;
+  var l=document.getElementById('admin-f-l')?.value;
+  if(!s||!e||!r||!l){ showToast('Сите полиња се задолжителни'); return; }
+  var item=data.find(function(d){return d.id===id;});
+  if(!item) return;
+  item.s=s; item.e=e; item.r=r; item.l=l;
+  editingId=null;
+  saveData();
+  fullRender();
+  showToast('Зачувано ✓');
+}
+
+function adminDelete(id){
+  if(!confirm('Избриши ја оваа локација?')) return;
+  data=data.filter(function(d){return d.id!==id;});
+  editingId=null;
+  saveData();
+  fullRender();
+  showToast('Избришано');
+}
+
+function adminSave(){
+  if(editingId!==null){
+    var s=document.getElementById('admin-f-s')?.value;
+    var e=document.getElementById('admin-f-e')?.value;
+    var r=document.getElementById('admin-f-r')?.value;
+    var l=document.getElementById('admin-f-l')?.value;
+    if(s&&e&&r&&l){
+      var item=data.find(function(d){return d.id===editingId;});
+      if(item){ item.s=s; item.e=e; item.r=r; item.l=l; }
+    }
+    editingId=null;
+  }
+  saveData();
+  fullRender();
+  showToast('Сите промени се зачувани ✓');
+}
+
+function adminExport(){
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='kabast-data.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('JSON извозот започна');
+}
+
+function adminImport(event){
+  var file=event.target.files[0];
+  if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var imported=JSON.parse(e.target.result);
+      if(!Array.isArray(imported)) throw new Error('Not an array');
+      imported.forEach(function(item,i){if(!item.s||!item.e||!item.r||!item.l) throw new Error('Invalid at '+i);});
+      data=imported;
+      nextId=data.reduce(function(m,d){return Math.max(m,d.id+1);},0);
+      saveData();
+      fullRender();
+      showToast('Увезени '+data.length+' локации ✓');
+    }catch(err){
+      showToast('Грешка при увоз: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+function adminAddEntry(){
+  var maxId=data.reduce(function(m,d){return Math.max(m,d.id);},-1);
+  var newId=maxId+1;
+  var refMonth=5;
+  if(data.length>0){ var last=data[data.length-1]; refMonth=new Date(last.s).getMonth(); }
+  var year='2026';
+  var mm=String(refMonth+1).padStart(2,'0');
+  data.push({id:newId,s:year+'-'+mm+'-01',e:year+'-'+mm+'-02',r:'Нов реон',l:'Нова локација',la:41.982,ln:21.470});
+  saveData();
+  fullRender();
+  setTimeout(function(){adminEditEntry(newId);},50);
+  showToast('Нова локација додадена — уредете ги полињата');
+}
+
+function showToast(msg){
+  var t=document.getElementById('admin-toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
+}
+
+// ══════════════════════════════════════════════════
+// FULL RENDER
+// ══════════════════════════════════════════════════
+
+function fullRender(){
+  renderSchedule();
+  renderMarkers();
+  updateBanner();
+  applyFilters();
+}
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+
+loadData();
+initMap();
+fullRender();
+
+var tl=document.getElementById('timeline');
+var addBtn=document.createElement('button');
+addBtn.className='admin-add-btn';
+addBtn.textContent='+ Додади локација';
+addBtn.addEventListener('click',adminAddEntry);
+tl.parentElement.insertBefore(addBtn,tl.nextSibling);
+
 </script>
 </body>
 </html>
