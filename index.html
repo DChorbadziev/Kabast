@@ -202,7 +202,9 @@
 <div class="panel active" id="map-panel">
   <div id="map"></div>
   <div id="legend">
-    <span><span class="leg-dot" style="background:#bf4951"></span> Локации</span>
+    <span><span class="leg-dot" style="background:#2d9c5e"></span> Претстојни</span>
+    <span><span class="leg-dot" style="background:#e67e22"></span> Активни</span>
+    <span><span class="leg-dot" style="background:#94a3b8"></span> Завршени</span>
   </div>
 </div>
 
@@ -394,9 +396,10 @@ function initMap(){
 }
 
 function mkIcon(st){
+  var c={upcoming:'#2d9c5e',active:'#e67e22',done:'#94a3b8'}[st]||'#2d9c5e';
   return L.divIcon({className:'',
-    html:'<div style="width:14px;height:14px;background:#bf4951;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.25);"></div>',
-    iconSize:[14,14],iconAnchor:[7,7],popupAnchor:[0,-10]});
+    html:'<div style="width:12px;height:12px;background:'+c+';border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.25);"></div>',
+    iconSize:[12,12],iconAnchor:[6,6],popupAnchor:[0,-9]});
 }
 
 function renderMarkers(){
