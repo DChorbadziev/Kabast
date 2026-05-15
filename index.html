@@ -409,7 +409,18 @@ function renderMarkers(){
     var st=getStatus(item); var df=fmtDate(item.s,item.e);
     var gmLink='https://www.google.com/maps?q='+item.la+','+item.ln;
     var shareText='Кабаст отпад — '+item.r+': '+item.l+' ('+df+')';
-    var m=L.marker([item.la,item.ln],{icon:mkIcon(st)}).addTo(map);
+    var opts={icon:mkIcon(st)};
+    if(adminMode) opts.draggable=true;
+    var m=L.marker([item.la,item.ln],opts).addTo(map);
+    if(adminMode){
+      m.on('dragend',function(){
+        var pos=m.getLatLng();
+        item.la=+pos.lat.toFixed(4);
+        item.ln=+pos.lng.toFixed(4);
+        saveData();
+        showToast('Координатите се ажурирани за: '+item.r);
+      });
+    }
     m.bindPopup(
       '<div class="p-reon">'+esc(item.r)+'</div>'+
       '<div class="p-loc">'+esc(item.l)+'</div>'+
@@ -496,7 +507,8 @@ function adminEnter(){
   adminMode=true;
   document.body.classList.add('admin-mode');
   document.getElementById('admin-bar').classList.add('show');
-  showToast('Админ режим — едитирајте ги локациите со клик');
+  fullRender();
+  showToast('Админ режим — влечете ги пиновите или кликнете на локации за уредување');
 }
 
 function adminExit(){
